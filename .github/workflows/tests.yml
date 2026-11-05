@@ -1,0 +1,72 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.lock.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements.lock.txt
+          python -m pip install -e ".[dev]"
+      - name: Run unit tests
+        run: python -m pytest evaluations/tests/unit -m unit --junitxml=reports/unit.xml
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-report
+          path: reports/unit.xml
+          if-no-files-found: ignore
+
+  functional:
+    name: Functional tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.lock.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements.lock.txt
+          python -m pip install -e ".[dev]"
+      - name: Run functional tests
+        run: python -m pytest evaluations/tests/functional -m functional --junitxml=reports/functional.xml
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: functional-report
+          path: reports/functional.xml
+          if-no-files-found: ignore

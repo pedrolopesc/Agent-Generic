@@ -1,0 +1,54 @@
+name: Release
+
+# Only successful Tests runs triggered by a push to main may publish.
+on:
+  workflow_run:
+    workflows: [Tests]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Semantic release
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          # Supports a GitHub App authorized by main branch rules; defaults to GITHUB_TOKEN.
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+      - name: Check that main is still the tested commit
+        id: tested
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          if [ "$(git rev-parse HEAD)" = "$TESTED_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "main has advanced; the test run for the latest commit will handle the release."
+          fi
+      - name: Version, changelog, tag and GitHub release
+        if: steps.tested.outputs.current == 'true'
+        uses: python-semantic-release/python-semantic-release@v10.7.0
+        with:
+          github_token: ${{ secrets.RELEASE_TOKEN || github.token }}
+          git_committer_name: github-actions[bot]
+          git_committer_email: 41898282+github-actions[bot]@users.noreply.github.com
