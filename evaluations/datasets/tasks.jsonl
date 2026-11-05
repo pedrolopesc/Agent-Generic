@@ -1,0 +1,2 @@
+{"id":"sum","prompt":"Crie sum.py com uma função add(a, b) e testes pytest. Execute os testes.","criteria":["função correta","testes passando"]}
+{"id":"repair","prompt":"Crie uma função de divisão que rejeite divisor zero com ValueError e teste os casos.","criteria":["tratamento de zero","testes passando"]}

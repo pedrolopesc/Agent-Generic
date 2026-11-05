@@ -1,0 +1,9 @@
+default:
+  provider: openai
+  model: gpt-4.1
+  temperature: 0
+roles: {}
+# roles:
+#   validator:
+#     provider: anthropic
+#     model: claude-sonnet-4-5
